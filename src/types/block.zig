@@ -45,6 +45,27 @@ pub const BlockHeader = struct {
         allocator.free(self.extra_data);
         self.* = undefined;
     }
+
+    // defines a custom encoder so that fields that were added later on in the chain history
+    // are not included in the RLP when hashing.
+    pub fn encodeToRLP(self: *const BlockHeader, allocator: Allocator, list: *std.ArrayList(u8)) !void {
+        const tmp = .{ self.parent_hash, self.uncle_hash, self.fee_recipient, self.state_root, self.transactions_root, self.receipts_root, self.logs_bloom, self.difficulty, self.block_number, self.gas_limit, self.gas_used, self.timestamp, self.extra_data, self.prev_randao, self.nonce, self.base_fee_per_gas, self.withdrawals_root, self.blob_gas_used, self.excess_blob_gas, self.parent_beacon_root, self.request_hash };
+        try rlp.serialize(@TypeOf(tmp), allocator, tmp, list);
+        // remove the last null optional fields
+        const info = @typeInfo(BlockHeader);
+        const nfields = info.Struct.fields.len;
+        inline for (0..nfields) |i| {
+            const field = info.Struct.fields[nfields - 1 - i];
+            if (@typeInfo(field.type) != .Optional) break;
+
+            std.debug.print("{s} {any}\n", .{ field.name, @field(self, field.name) });
+            if (@field(self, field.name) != null) break;
+
+            std.debug.print("removing item from list, pre size={}, item={}\n", .{ list.items[list.items.len - 1], list.items[list.items.len - 1] });
+            try list.resize(list.items.len - 1);
+        }
+        std.debug.print("{any}\n", .{list.items});
+    }
 };
 
 pub const Block = struct {
