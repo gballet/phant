@@ -1,6 +1,3 @@
-const evmc = @cImport({
-    @cInclude("evmone.h");
-});
 const std = @import("std");
 const types = @import("../types/types.zig");
 const common = @import("../common/common.zig");
